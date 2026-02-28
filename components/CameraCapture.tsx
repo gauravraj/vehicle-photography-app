@@ -2,11 +2,11 @@ import AngleOverlay from '@/components/AngleOverlay';
 import AngleStrip from '@/components/AngleStrip';
 import { CAR_ANGLES, CarAngle } from '@/constants/carAngles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { CameraView, useCameraPermissions } from 'expo-camera';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     Alert,
     Animated,
+    Linking,
     StatusBar,
     StyleSheet,
     Text,
@@ -15,6 +15,7 @@ import {
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Camera, useCameraDevice, useCameraPermission } from 'react-native-vision-camera';
 
 type Props = {
     capturedImages: Record<number, string | null>;
@@ -23,8 +24,9 @@ type Props = {
 };
 
 export default function CameraCapture({ capturedImages, onCapture, onClose }: Props) {
-    const [permission, requestPermission] = useCameraPermissions();
-    const cameraRef = useRef<CameraView>(null);
+    const { hasPermission, requestPermission } = useCameraPermission();
+    const device = useCameraDevice('back');
+    const cameraRef = useRef<Camera>(null);
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
 
@@ -62,13 +64,14 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
         triggerShutterAnimation();
 
         try {
-            const photo = await cameraRef.current.takePictureAsync({
-                quality: 0.85,
-                skipProcessing: false,
+            const photo = await cameraRef.current.takePhoto({
+                qualityPrioritization: 'balanced',
+                flash: 'off',
             });
 
-            if (photo?.uri) {
-                onCapture(selectedAngle.id, photo.uri);
+            if (photo?.path) {
+                const uri = `file://${photo.path}`;
+                onCapture(selectedAngle.id, uri);
 
                 // Auto-advance to next uncaptured angle
                 const currentIndex = CAR_ANGLES.findIndex((a) => a.id === selectedAngle.id);
@@ -94,12 +97,27 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
 
     // Request permission on mount
     useEffect(() => {
-        if (!permission?.granted) {
+        if (hasPermission === false) {
             requestPermission();
         }
-    }, []);
+    }, [hasPermission]);
 
-    if (!permission) {
+    const handleRequestPermission = async () => {
+        const result = await requestPermission();
+        if (!result) {
+            // Permission denied, open settings
+            Alert.alert(
+                'Camera Permission Required',
+                'Please enable camera access in your device settings to use this feature.',
+                [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Open Settings', onPress: () => Linking.openSettings() }
+                ]
+            );
+        }
+    };
+
+    if (hasPermission === null) {
         return (
             <View style={[styles.root, styles.centerContent]}>
                 <Text style={styles.permText}>Requesting camera permission…</Text>
@@ -107,7 +125,7 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
         );
     }
 
-    if (!permission.granted) {
+    if (!hasPermission) {
         return (
             <View style={[styles.root, styles.centerContent]}>
                 <MaterialCommunityIcons name="camera-off" size={52} color="#64748B" />
@@ -115,9 +133,24 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
                 <Text style={styles.permText}>
                     Car Inspector needs camera access to capture vehicle images.
                 </Text>
-                <TouchableOpacity style={styles.permButton} onPress={requestPermission}>
+                <TouchableOpacity style={styles.permButton} onPress={handleRequestPermission}>
                     <Text style={styles.permButtonText}>Grant Permission</Text>
                 </TouchableOpacity>
+                <TouchableOpacity style={styles.closeTextBtn} onPress={onClose}>
+                    <Text style={styles.closeTextBtnLabel}>Go Back</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    }
+
+    if (!device) {
+        return (
+            <View style={[styles.root, styles.centerContent]}>
+                <MaterialCommunityIcons name="camera-off" size={52} color="#64748B" />
+                <Text style={styles.permTitle}>Camera Not Available</Text>
+                <Text style={styles.permText}>
+                    No camera device found on this device.
+                </Text>
                 <TouchableOpacity style={styles.closeTextBtn} onPress={onClose}>
                     <Text style={styles.closeTextBtnLabel}>Go Back</Text>
                 </TouchableOpacity>
@@ -147,8 +180,14 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
 
                     {/* Center: camera */}
                     <View style={styles.cameraWrapper}>
-                        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
-                        <AngleOverlay angle={selectedAngle} />
+                        <Camera
+                            ref={cameraRef}
+                            style={StyleSheet.absoluteFill}
+                            device={device}
+                            isActive={true}
+                            photo={true}
+                        />
+                        <AngleOverlay angle={selectedAngle} isLandscape={isLandscape} />
 
                         {/* Angle label */}
                         <View style={[styles.angleLabelBar, { bottom: 20 + insets.bottom }]}>
@@ -200,8 +239,14 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
 
                     {/* Camera view */}
                     <View style={styles.cameraWrapper}>
-                        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
-                        <AngleOverlay angle={selectedAngle} />
+                        <Camera
+                            ref={cameraRef}
+                            style={StyleSheet.absoluteFill}
+                            device={device}
+                            isActive={true}
+                            photo={true}
+                        />
+                        <AngleOverlay angle={selectedAngle} isLandscape={isLandscape} />
 
                         {/* Angle label */}
                         <View style={styles.angleLabelBar}>

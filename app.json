@@ -38,7 +38,13 @@
     },
     "plugins": [
       "expo-router",
-      "expo-camera",
+      [
+        "react-native-vision-camera",
+        {
+          "cameraPermissionText": "Car Inspector uses your camera to capture vehicle images from multiple angles.",
+          "enableCodeScanner": false
+        }
+      ],
       [
         "expo-splash-screen",
         {

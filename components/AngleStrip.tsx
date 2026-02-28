@@ -67,15 +67,20 @@ export default function AngleStrip({
                             activeOpacity={0.75}
                         >
                             {/* Thumbnail or icon */}
-                            <View style={styles.iconContainer}>
+                            <View style={[styles.iconContainer, !isPortrait && styles.iconContainerLandscape]}>
                                 {capturedUri ? (
-                                    <Image source={{ uri: capturedUri }} style={styles.thumbnail} />
-                                ) : (
-                                    <MaterialCommunityIcons
-                                        name={angle.iconName as any}
-                                        size={22}
-                                        color={isSelected ? '#60A5FA' : '#94A3B8'}
+                                    <Image
+                                        source={{ uri: capturedUri }}
+                                        style={[styles.thumbnail, !isPortrait && styles.thumbnailLandscape]}
                                     />
+                                ) : (
+                                    <View style={!isPortrait && styles.iconRotate}>
+                                        <MaterialCommunityIcons
+                                            name={angle.iconName as any}
+                                            size={22}
+                                            color={isSelected ? '#60A5FA' : '#94A3B8'}
+                                        />
+                                    </View>
                                 )}
                                 {/* Green check badge */}
                                 {isCaptured && (
@@ -93,7 +98,11 @@ export default function AngleStrip({
                             </View>
 
                             <Text
-                                style={[styles.label, isSelected && styles.labelSelected]}
+                                style={[
+                                    styles.label,
+                                    isSelected && styles.labelSelected,
+                                    !isPortrait && styles.labelLandscape
+                                ]}
                                 numberOfLines={1}
                             >
                                 {angle.shortLabel}
@@ -205,5 +214,17 @@ const styles = StyleSheet.create({
     labelSelected: {
         color: '#60A5FA',
         fontWeight: '700',
+    },
+    iconContainerLandscape: {
+        transform: [{ rotate: '-90deg' }],
+    },
+    thumbnailLandscape: {
+        transform: [{ rotate: '-90deg' }],
+    },
+    iconRotate: {
+        transform: [{ rotate: '-90deg' }],
+    },
+    labelLandscape: {
+        transform: [{ rotate: '-90deg' }],
     },
 });
