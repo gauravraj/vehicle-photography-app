@@ -1,6 +1,7 @@
 import AngleOverlay from '@/components/AngleOverlay';
 import AngleStrip from '@/components/AngleStrip';
 import { CAR_ANGLES, CarAngle } from '@/constants/carAngles';
+import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -29,6 +30,7 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
     const cameraRef = useRef<Camera>(null);
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
+    const { rotationDegrees } = useDeviceOrientation();
 
     const isLandscape = width > height;
 
@@ -175,6 +177,7 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
                             capturedImages={capturedImages}
                             onSelectAngle={handleSelectAngle}
                             orientation="landscape"
+                            deviceRotation={rotationDegrees}
                         />
                     </View>
 
@@ -234,6 +237,7 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
                             capturedImages={capturedImages}
                             onSelectAngle={handleSelectAngle}
                             orientation="portrait"
+                            deviceRotation={rotationDegrees}
                         />
                     </View>
 

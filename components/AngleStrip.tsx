@@ -15,6 +15,7 @@ type Props = {
     capturedImages: Record<number, string | null>;
     onSelectAngle: (angle: CarAngle) => void;
     orientation: 'portrait' | 'landscape';
+    deviceRotation?: number;
 };
 
 export default function AngleStrip({
@@ -22,6 +23,7 @@ export default function AngleStrip({
     capturedImages,
     onSelectAngle,
     orientation,
+    deviceRotation = 0,
 }: Props) {
     const scrollRef = useRef<ScrollView>(null);
 
@@ -67,20 +69,21 @@ export default function AngleStrip({
                             activeOpacity={0.75}
                         >
                             {/* Thumbnail or icon */}
-                            <View style={[styles.iconContainer, !isPortrait && styles.iconContainerLandscape]}>
+                            <View style={[
+                                styles.iconContainer,
+                                { transform: [{ rotate: `${deviceRotation}deg` }] }
+                            ]}>
                                 {capturedUri ? (
                                     <Image
                                         source={{ uri: capturedUri }}
-                                        style={[styles.thumbnail, !isPortrait && styles.thumbnailLandscape]}
+                                        style={styles.thumbnail}
                                     />
                                 ) : (
-                                    <View style={!isPortrait && styles.iconRotate}>
-                                        <MaterialCommunityIcons
-                                            name={angle.iconName as any}
-                                            size={22}
-                                            color={isSelected ? '#60A5FA' : '#94A3B8'}
-                                        />
-                                    </View>
+                                    <MaterialCommunityIcons
+                                        name={angle.iconName as any}
+                                        size={22}
+                                        color={isSelected ? '#60A5FA' : '#94A3B8'}
+                                    />
                                 )}
                                 {/* Green check badge */}
                                 {isCaptured && (
@@ -101,7 +104,7 @@ export default function AngleStrip({
                                 style={[
                                     styles.label,
                                     isSelected && styles.labelSelected,
-                                    !isPortrait && styles.labelLandscape
+                                    { transform: [{ rotate: `${deviceRotation}deg` }] }
                                 ]}
                                 numberOfLines={1}
                             >
@@ -214,17 +217,5 @@ const styles = StyleSheet.create({
     labelSelected: {
         color: '#60A5FA',
         fontWeight: '700',
-    },
-    iconContainerLandscape: {
-        transform: [{ rotate: '-90deg' }],
-    },
-    thumbnailLandscape: {
-        transform: [{ rotate: '-90deg' }],
-    },
-    iconRotate: {
-        transform: [{ rotate: '-90deg' }],
-    },
-    labelLandscape: {
-        transform: [{ rotate: '-90deg' }],
     },
 });
