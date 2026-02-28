@@ -9,16 +9,26 @@ import {
 type Props = {
     angle: CarAngle;
     isLandscape?: boolean;
+    deviceRotation?: number;
 };
 
-export default function AngleOverlay({ angle, isLandscape = false }: Props) {
+export default function AngleOverlay({ angle, isLandscape = false, deviceRotation = 0 }: Props) {
+    // The overlay should stay aligned with the camera view
+    // When in landscape, we rotate 90° to match the screen orientation
+    // The deviceRotation compensates for device tilt to keep the overlay upright
+    const baseRotation = isLandscape ? 90 : 0;
+    const totalRotation = baseRotation + deviceRotation;
+
+    // Debug logging
+    console.log('AngleOverlay - isLandscape:', isLandscape, 'deviceRotation:', deviceRotation, 'totalRotation:', totalRotation);
+
     return (
         <View style={styles.container} pointerEvents="none">
             <Image
                 source={angle.overlayAsset}
                 style={[
                     styles.overlay,
-                    isLandscape && styles.overlayLandscape
+                    { transform: [{ rotate: `${totalRotation}deg` }] }
                 ]}
                 resizeMode="contain"
             />
@@ -40,8 +50,5 @@ const styles = StyleSheet.create({
         // it recolors only non-transparent pixels → pure white outlines
         tintColor: '#FFFFFF',
         opacity: 0.6,
-    },
-    overlayLandscape: {
-        transform: [{ rotate: '90deg' }],
     },
 });

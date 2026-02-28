@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.test-camera",
       "infoPlist": {
-        "NSCameraUsageDescription": "Car Inspector uses your camera to capture vehicle images from multiple angles."
+        "NSCameraUsageDescription": "Car Inspector uses your camera to capture vehicle images from multiple angles.",
+        "NSMotionUsageDescription": "Car Inspector uses device motion to keep the overlay aligned when you rotate your device."
       }
     },
     "android": {
@@ -43,6 +44,12 @@
         {
           "cameraPermissionText": "Car Inspector uses your camera to capture vehicle images from multiple angles.",
           "enableCodeScanner": false
+        }
+      ],
+      [
+        "expo-sensors",
+        {
+          "motionPermission": "Car Inspector uses device motion to keep the overlay aligned when you rotate your device."
         }
       ],
       [

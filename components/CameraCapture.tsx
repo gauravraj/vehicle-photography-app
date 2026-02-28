@@ -190,7 +190,7 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
                             isActive={true}
                             photo={true}
                         />
-                        <AngleOverlay angle={selectedAngle} isLandscape={isLandscape} />
+                        <AngleOverlay angle={selectedAngle} isLandscape={isLandscape} deviceRotation={rotationDegrees} />
 
                         {/* Angle label */}
                         <View style={[styles.angleLabelBar, { bottom: 20 + insets.bottom }]}>
@@ -250,7 +250,7 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
                             isActive={true}
                             photo={true}
                         />
-                        <AngleOverlay angle={selectedAngle} isLandscape={isLandscape} />
+                        <AngleOverlay angle={selectedAngle} isLandscape={isLandscape} deviceRotation={rotationDegrees} />
 
                         {/* Angle label */}
                         <View style={styles.angleLabelBar}>
