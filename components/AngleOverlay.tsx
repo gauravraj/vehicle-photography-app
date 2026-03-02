@@ -10,27 +10,38 @@ type Props = {
     angle: CarAngle;
     isLandscape?: boolean;
     deviceRotation?: number;
+    screenWidth: number;
+    screenHeight: number;
 };
 
-export default function AngleOverlay({ angle, isLandscape = false, deviceRotation = 0 }: Props) {
+function AngleOverlay({ angle, isLandscape = false, deviceRotation = 0, screenWidth, screenHeight }: Props) {
     // The overlay should stay aligned with the camera view
     // When in landscape, we rotate 90° to match the screen orientation
     // The deviceRotation compensates for device tilt to keep the overlay upright
     const baseRotation = isLandscape ? 90 : 0;
     const totalRotation = baseRotation + deviceRotation;
 
-    // Debug logging
-    console.log('AngleOverlay - isLandscape:', isLandscape, 'deviceRotation:', deviceRotation, 'totalRotation:', totalRotation);
+    // Determine if device is physically rotated to landscape based on rotation angle
+    // When totalRotation is around 90 or -90, device is in landscape
+    const isPhysicallyLandscape = Math.abs(totalRotation % 180) > 45 && Math.abs(totalRotation % 180) < 135;
+
+    // Calculate overlay dimensions based on physical device orientation
+    // When device is rotated to landscape, swap width/height to maintain proper scaling
+    const overlayWidth = isPhysicallyLandscape ? screenHeight * angle.landscapeScaleFactor : screenWidth * angle.portraitScaleFactor;
+    const overlayHeight = isPhysicallyLandscape ? screenWidth * angle.landscapeScaleFactor : screenHeight * angle.portraitScaleFactor;
 
     return (
         <View style={styles.container} pointerEvents="none">
             <Image
                 source={angle.overlayAsset}
-                style={[
-                    styles.overlay,
-                    { transform: [{ rotate: `${totalRotation}deg` }] }
-                ]}
+                style={{
+                    width: overlayWidth,
+                    height: overlayHeight,
+                    opacity: 0.6,
+                    transform: [{ rotate: `${totalRotation}deg` }]
+                }}
                 resizeMode="contain"
+                fadeDuration={0}
             />
         </View>
     );
@@ -43,12 +54,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         zIndex: 10,
     },
-    overlay: {
-        width: '95%',
-        height: '100%',
-        // tintColor works correctly on transparent-background PNGs:
-        // it recolors only non-transparent pixels → pure white outlines
-        tintColor: '#FFFFFF',
-        opacity: 0.6,
-    },
 });
+
+export default React.memo(AngleOverlay);

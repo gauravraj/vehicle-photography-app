@@ -1,7 +1,10 @@
 import AngleOverlay from '@/components/AngleOverlay';
 import AngleStrip from '@/components/AngleStrip';
+import BoundingBoxOverlay from '@/components/BoundingBoxOverlay';
 import { CAR_ANGLES, CarAngle } from '@/constants/carAngles';
 import { useDeviceOrientation } from '@/hooks/useDeviceOrientation';
+import { useObjectDetection } from '@/hooks/useObjectDetection';
+import type { BoundingBox } from '@/types/detection';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -34,10 +37,34 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
 
     const isLandscape = width > height;
 
+    // Calculate actual camera view dimensions (excluding UI strips/bars)
+    const ANGLE_STRIP_WIDTH_LANDSCAPE = 78;
+    const RIGHT_CONTROLS_WIDTH_LANDSCAPE = 90;
+    const ANGLE_STRIP_HEIGHT_PORTRAIT = 88;
+    const BOTTOM_BAR_HEIGHT_PORTRAIT = 100; // Approximate height
+
+    const cameraViewWidth = isLandscape
+        ? width - ANGLE_STRIP_WIDTH_LANDSCAPE - RIGHT_CONTROLS_WIDTH_LANDSCAPE
+        : width;
+    const cameraViewHeight = isLandscape
+        ? height
+        : height - ANGLE_STRIP_HEIGHT_PORTRAIT - BOTTOM_BAR_HEIGHT_PORTRAIT;
+
+    // Debug logging
+    console.log('=== CameraCapture Dimensions ===');
+    console.log('Screen:', { width, height, isLandscape });
+    console.log('Camera View:', { cameraViewWidth, cameraViewHeight });
+
     // Find first uncaptured angle as default
     const firstUncaptured = CAR_ANGLES.find((a) => !capturedImages[a.id]) ?? CAR_ANGLES[0];
     const [selectedAngle, setSelectedAngle] = useState<CarAngle>(firstUncaptured);
     const [isCapturing, setIsCapturing] = useState(false);
+
+    // Object detection state
+    const [detectedCarBbox, setDetectedCarBbox] = useState<BoundingBox | null>(null);
+    const [showBoundingBox, setShowBoundingBox] = useState(false);
+    const detectionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const { isModelLoaded, detectObjects } = useObjectDetection();
 
     // Flash animation for shutter feedback
     const flashAnim = useRef(new Animated.Value(0)).current;
@@ -67,7 +94,6 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
 
         try {
             const photo = await cameraRef.current.takePhoto({
-                qualityPrioritization: 'balanced',
                 flash: 'off',
             });
 
@@ -103,6 +129,37 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
             requestPermission();
         }
     }, [hasPermission]);
+
+    // Simulated object detection (runs periodically)
+    // In production, this would use frame processor from react-native-vision-camera
+    useEffect(() => {
+        if (!isModelLoaded || !showBoundingBox) {
+            return;
+        }
+
+        // Simulate detection every 500ms
+        // In production, this would be replaced with actual frame processing
+        const runDetection = async () => {
+            try {
+                const result = await detectObjects(null, cameraViewWidth, cameraViewHeight);
+                setDetectedCarBbox(result.largestCarBbox);
+            } catch (error) {
+                console.error('[CameraCapture] Detection error:', error);
+            }
+        };
+
+        // Run initial detection
+        runDetection();
+
+        // Set up interval for continuous detection
+        detectionIntervalRef.current = setInterval(runDetection, 500);
+
+        return () => {
+            if (detectionIntervalRef.current) {
+                clearInterval(detectionIntervalRef.current);
+            }
+        };
+    }, [isModelLoaded, showBoundingBox, detectObjects, cameraViewWidth, cameraViewHeight]);
 
     const handleRequestPermission = async () => {
         const result = await requestPermission();
@@ -190,7 +247,24 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
                             isActive={true}
                             photo={true}
                         />
-                        <AngleOverlay angle={selectedAngle} isLandscape={isLandscape} deviceRotation={rotationDegrees} />
+                        <AngleOverlay
+                            angle={selectedAngle}
+                            isLandscape={isLandscape}
+                            deviceRotation={rotationDegrees}
+                            screenWidth={cameraViewWidth}
+                            screenHeight={cameraViewHeight}
+                        />
+
+                        {/* Bounding box overlay for car detection */}
+                        {showBoundingBox && detectedCarBbox && (
+                            <BoundingBoxOverlay
+                                bbox={detectedCarBbox}
+                                width={cameraViewWidth}
+                                height={cameraViewHeight}
+                                label="Car"
+                                confidence={0.85}
+                            />
+                        )}
 
                         {/* Angle label */}
                         <View style={[styles.angleLabelBar, { bottom: 20 + insets.bottom }]}>
@@ -206,6 +280,18 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
                     <View style={[styles.rightControls, { paddingTop: insets.top, paddingBottom: insets.bottom, paddingRight: insets.right }]}>
                         <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
                             <MaterialCommunityIcons name="close" size={22} color="#F1F5F9" />
+                        </TouchableOpacity>
+
+                        {/* Toggle bounding box button */}
+                        <TouchableOpacity
+                            style={[styles.toggleBtn, showBoundingBox && styles.toggleBtnActive]}
+                            onPress={() => setShowBoundingBox(!showBoundingBox)}
+                        >
+                            <MaterialCommunityIcons
+                                name={showBoundingBox ? "target" : "target-variant"}
+                                size={20}
+                                color={showBoundingBox ? "#60A5FA" : "#94A3B8"}
+                            />
                         </TouchableOpacity>
 
                         <Animated.View style={{ transform: [{ scale: shutterScaleAnim }] }}>
@@ -250,7 +336,24 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
                             isActive={true}
                             photo={true}
                         />
-                        <AngleOverlay angle={selectedAngle} isLandscape={isLandscape} deviceRotation={rotationDegrees} />
+                        <AngleOverlay
+                            angle={selectedAngle}
+                            isLandscape={isLandscape}
+                            deviceRotation={rotationDegrees}
+                            screenWidth={cameraViewWidth}
+                            screenHeight={cameraViewHeight}
+                        />
+
+                        {/* Bounding box overlay for car detection */}
+                        {showBoundingBox && detectedCarBbox && (
+                            <BoundingBoxOverlay
+                                bbox={detectedCarBbox}
+                                width={cameraViewWidth}
+                                height={cameraViewHeight}
+                                label="Car"
+                                confidence={0.85}
+                            />
+                        )}
 
                         {/* Angle label */}
                         <View style={styles.angleLabelBar}>
@@ -285,7 +388,16 @@ export default function CameraCapture({ capturedImages, onCapture, onClose }: Pr
                                 <Text style={styles.doneBtnText}>Done</Text>
                             </TouchableOpacity>
                         ) : (
-                            <View style={styles.closePlaceholder} />
+                            <TouchableOpacity
+                                style={[styles.toggleBtn, showBoundingBox && styles.toggleBtnActive]}
+                                onPress={() => setShowBoundingBox(!showBoundingBox)}
+                            >
+                                <MaterialCommunityIcons
+                                    name={showBoundingBox ? "target" : "target-variant"}
+                                    size={20}
+                                    color={showBoundingBox ? "#60A5FA" : "#94A3B8"}
+                                />
+                            </TouchableOpacity>
                         )}
                     </View>
                 </View>
@@ -383,6 +495,20 @@ const styles = StyleSheet.create({
     closePlaceholder: {
         width: 42,
         height: 42,
+    },
+    toggleBtn: {
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 2,
+        borderColor: 'transparent',
+    },
+    toggleBtnActive: {
+        backgroundColor: 'rgba(96, 165, 250, 0.2)',
+        borderColor: '#60A5FA',
     },
     shutterBtn: {
         width: 68,
