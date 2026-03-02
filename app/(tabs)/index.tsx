@@ -1,16 +1,17 @@
 import CameraCapture from '@/components/CameraCapture';
 import GalleryGrid from '@/components/GalleryGrid';
-import { CAR_ANGLES } from '@/constants/carAngles';
+import ImageViewer from '@/components/ImageViewer';
+import { CAR_ANGLES, CarAngle } from '@/constants/carAngles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useState } from 'react';
 import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 // Initialise all 11 slots as null (not yet captured)
@@ -25,6 +26,9 @@ export default function HomeScreen() {
     initCapturedImages
   );
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [selectedAngle, setSelectedAngle] = useState<CarAngle | null>(null);
+  const [selectedImageUri, setSelectedImageUri] = useState<string | null>(null);
 
   const handleCapture = useCallback((angleId: number, uri: string) => {
     setCapturedImages((prev) => ({ ...prev, [angleId]: uri }));
@@ -36,6 +40,18 @@ export default function HomeScreen() {
   const handleReset = () => {
     setCapturedImages(initCapturedImages());
   };
+
+  const handleImagePress = useCallback((angle: CarAngle, uri: string | null) => {
+    setSelectedAngle(angle);
+    setSelectedImageUri(uri);
+    setViewerVisible(true);
+  }, []);
+
+  const handleCloseViewer = useCallback(() => {
+    setViewerVisible(false);
+    setSelectedAngle(null);
+    setSelectedImageUri(null);
+  }, []);
 
   const capturedCount = Object.values(capturedImages).filter(Boolean).length;
   const progress = capturedCount / 11;
@@ -145,10 +161,19 @@ export default function HomeScreen() {
         <GalleryGrid
           capturedImages={capturedImages}
           onStartCapture={handleOpen}
+          onImagePress={handleImagePress}
         />
 
         <View style={{ height: 32 }} />
       </ScrollView>
+
+      {/* Image Viewer Modal */}
+      <ImageViewer
+        visible={viewerVisible}
+        angle={selectedAngle}
+        capturedImageUri={selectedImageUri}
+        onClose={handleCloseViewer}
+      />
     </View>
   );
 }

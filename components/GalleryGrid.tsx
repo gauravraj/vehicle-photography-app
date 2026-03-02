@@ -1,21 +1,23 @@
-import { CAR_ANGLES } from '@/constants/carAngles';
+import { CAR_ANGLES, CarAngle } from '@/constants/carAngles';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import React from 'react';
 import {
     Image,
     StyleSheet,
     Text,
+    TouchableOpacity,
     View
 } from 'react-native';
 
 type Props = {
     capturedImages: Record<number, string | null>;
     onStartCapture: () => void;
+    onImagePress?: (angle: CarAngle, uri: string | null) => void;
 };
 
 const NUM_COLS = 4;
 
-export default function GalleryGrid({ capturedImages, onStartCapture }: Props) {
+export default function GalleryGrid({ capturedImages, onStartCapture, onImagePress }: Props) {
     const capturedCount = Object.values(capturedImages).filter(Boolean).length;
 
     return (
@@ -46,11 +48,13 @@ export default function GalleryGrid({ capturedImages, onStartCapture }: Props) {
 
                     return (
                         <View key={angle.id} style={styles.cell}>
-                            <View
+                            <TouchableOpacity
                                 style={[
                                     styles.thumbnail,
                                     isCaptured ? styles.thumbnailCaptured : styles.thumbnailPending,
                                 ]}
+                                onPress={() => onImagePress?.(angle, uri)}
+                                activeOpacity={0.7}
                             >
                                 {isCaptured ? (
                                     <Image source={{ uri }} style={styles.capturedImg} resizeMode="cover" />
@@ -75,7 +79,7 @@ export default function GalleryGrid({ capturedImages, onStartCapture }: Props) {
                                         <MaterialCommunityIcons name="check-circle" size={16} color="#22C55E" />
                                     </View>
                                 )}
-                            </View>
+                            </TouchableOpacity>
                             <Text style={styles.cellLabel} numberOfLines={1}>
                                 {angle.shortLabel}
                             </Text>
